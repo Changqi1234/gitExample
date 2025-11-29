@@ -1,0 +1,22 @@
+universe = vanilla
+executable = hw4.sh
+arguments  = /staging/groups/STAT_DSCP/boss/tgz/3586.tgz
+
+should_transfer_files   = YES
+when_to_transfer_output = ON_EXIT
+transfer_executable     = TRUE
+transfer_input_files    = hw4.R, hw4.sh
+
+requirements = (HasCHTCStaging == true)
++IsBuildJob = true
+container_image = file:///staging/jgillett/R_tidyverse_FITSio.sif
+
+output = hw4_1job.out
+error  = hw4_1job.err
+log    = hw4_1job.log
+
+request_cpus   = 1
+request_memory = 256MB
+request_disk   = 1500MB
+
+queue
