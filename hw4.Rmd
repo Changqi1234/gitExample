@@ -1,0 +1,82 @@
+---
+title: "HW4 Report"
+author: "Changqi Jin"
+date: "`r Sys.Date()`"
+output: html_document
+---
+Changqi Jin
+changqi@wisc.edu
+
+# Summary
+
+In this homework, I used my hw4.R script together with the CHTC HTCondor system to search for spectra similar to the cB58 Lyman-break spectrum in all 2459 .tgz files. For each .tgz file, I computed a weighted and normalized distance between cB58 and every spectrum in that file, and wrote the results to an individual .csv file. After all jobs completed, I merged the 2459 output files into a single hw4best100.csv containing the best 100 matches across all spectra. In this report, I load the top 100 results, select the top 10 spectra, and plot each of them aligned with cB58 for visual inspection.
+
+I encountered several unexpected issues during this process. When I first tried to download some files onto CHTC using wget, the download was silently redirected to an HTML page instead of the intended file, which caused confusion until I checked the file contents directly. I also ran into a staging mount failure (Transport endpoint is not connected), which made the /staging/groups/STAT_DSCP/... directory temporarily inaccessible; I had to wait for the mount to be restored before continuing. In addition, some CHTC nodes did not have R installed, so I had to switch my jobs to run inside a container and verify that the container included the correct R version as well as the FITSio package. Finally, I initially made mistakes with normalization and weighting (handling of ivar and the and_mask indicator), and I also had to confirm that the indices recorded in hw4best100.csv correctly matched the alignment positions within each spectrum. After addressing these issues one by one, I was able to run all 2459 jobs successfully and obtain the final ranking.
+
+# Top 10 spectra and data
+```{r}
+require("FITSio")
+
+best100 <- read.csv("hw4best100.csv", stringsAsFactors = FALSE)
+
+top10 <- head(best100, 10)
+
+top10
+```
+
+# Plots of cB58 aligned with the top 10 spectra
+```{r}
+template_file <- "cB58_Lyman_break.fit"
+baseline      <- readFrameFromFITS(template_file)
+n_main        <- nrow(baseline)
+
+spec_dir <- "."
+
+col_sdss <- "steelblue"
+col_base <- "firebrick"
+
+par(mfrow = c(5, 2), mar = c(4, 4, 3, 1))
+
+for (k in 1:nrow(top10)) {
+
+spec_id <- top10$spectrumID[k]
+start_i <- top10$i[k]
+
+spec_file <- file.path(spec_dir, spec_id)
+xy <- readFrameFromFITS(spec_file)
+
+if (is.na(start_i) || start_i <= 0 || (start_i + n_main - 1) > nrow(xy)) {
+plot(0, 0, type = "n",
+xlab = "", ylab = "",
+main = paste(spec_id, "(index out of range)"))
+next
+}
+
+y1_raw <- xy[start_i:(start_i + n_main - 1), "flux"]
+y2_raw <- baseline[, "FLUX"]
+
+y1 <- (y1_raw - mean(y1_raw, na.rm = TRUE)) / sd(y1_raw, na.rm = TRUE)
+y2 <- (y2_raw - mean(y2_raw, na.rm = TRUE)) / sd(y2_raw, na.rm = TRUE)
+
+x1 <- 1:length(y1)
+x2 <- 1:length(y2)
+
+xr <- range(c(x1, x2), na.rm = TRUE)
+yr <- range(c(y1, y2), na.rm = TRUE)
+
+plot(x1, y1, type = "l", col = col_sdss, lwd = 1.2,
+xlim = xr, ylim = yr,
+xlab = "index", ylab = "normalized flux",
+main = spec_id)
+
+lines(x2, y2, col = col_base, lty = 2, lwd = 1.2)
+
+legend("topright",
+legend = c("SDSS spectrum", "cB58 baseline"),
+col    = c(col_sdss,      col_base),
+lty    = c(1,             2),
+lwd    = 1.2,
+bty    = "n")
+}
+
+```
