@@ -1,0 +1,21 @@
+universe   = vanilla
+executable = hw4.sh
+arguments  = $(tgzfile)
+
+should_transfer_files   = YES
+when_to_transfer_output = ON_EXIT
+transfer_executable     = TRUE
+transfer_input_files    = hw4.R
+
+container_image = file:///staging/jgillett/R_tidyverse_FITSio.sif
+requirements    = (HasCHTCStaging == true)
+
+request_cpus   = 1
+request_memory = 2GB
+request_disk   = 2GB
+
+output = hw4.$(Process).out
+error  = hw4.$(Process).err
+log    = hw4.log
+
+queue tgzfile matching files /staging/groups/STAT_DSCP/boss/tgz/*.tgz

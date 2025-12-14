@@ -2,8 +2,12 @@
 
 out="hw4best100.csv"
 
-ls *.csv | grep -v "$out" | head -n 1 | xargs head -n 1 > "$out"
+echo "\"distance\",\"spectrumID\",\"i\"" > "$out"
 
-grep -vh "^distance" $(ls *.csv | grep -v "$out") \
-    | sort -t, -k1,1g \
+for f in *.csv; do
+    if [[ "$f" != "$out" ]]; then
+        tail -n +2 "$f"
+    fi
+done \
+    | sort -t, - -k1,1g \
     | head -n 100 >> "$out"
